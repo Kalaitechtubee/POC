@@ -100,6 +100,8 @@ class _SubtitleScreenState extends State<SubtitleScreen>
 
   // Subtitle state
   SubtitleEntry? _current;
+  String _liveText = '';
+  bool _isFinal = true;
   final List<SubtitleEntry> _history = [];
   int _localCounter = 0;
 
@@ -157,6 +159,21 @@ class _SubtitleScreenState extends State<SubtitleScreen>
       _handleSubtitle(data);
     });
 
+    _socket!.on('live_subtitle', (data) {
+      setState(() {
+        _liveText = data.toString();
+        _isFinal = false;
+      });
+    });
+
+    _socket!.on('final_subtitle', (data) {
+      setState(() {
+        _liveText = data.toString();
+        _isFinal = true;
+      });
+      // Note: the 'subtitle' event will also trigger and add to history
+    });
+
     _socket!.on('history', (data) {
       if (data is List) {
         setState(() {
@@ -187,6 +204,8 @@ class _SubtitleScreenState extends State<SubtitleScreen>
 
     setState(() {
       _current = entry;
+      // We don't necessarily clear _liveText here because final_subtitle sets it.
+      // But if it's a regular subtitle (not from the live/final flow), we might want to.
       _history.insert(0, entry);
       if (_history.length > 100) _history.removeLast();
     });
@@ -295,11 +314,11 @@ class _SubtitleScreenState extends State<SubtitleScreen>
             if (_current != null)
               Text(
                 '▶  LIVE',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.2,
-                  color: Color(0xFF00D4FF),
+                  color: _isFinal ? const Color(0xFF10B981) : const Color(0xFF00D4FF),
                 ),
               ),
 
@@ -320,7 +339,7 @@ class _SubtitleScreenState extends State<SubtitleScreen>
                     : const Color(0xFF374151),
                 ),
                 child: Text(
-                  _current?.text ?? 'Waiting for subtitles…',
+                  _liveText.isNotEmpty ? _liveText : (_current?.text ?? 'Waiting for subtitles…'),
                   textAlign: TextAlign.center,
                 ),
               ),

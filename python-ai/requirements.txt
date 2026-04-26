@@ -9,7 +9,9 @@
 python-socketio[client]>=5.11.0
 websocket-client>=1.7.0
 
-# ── Required: OpenAI Whisper (speech-to-text AI) ───────────
+# ── Required: AI Models (PRO System) ───────────────────────
+faster-whisper>=1.0.0
+vosk>=0.3.45
 openai-whisper>=20231117
 
 # ── Required: Audio capture ────────────────────────────────

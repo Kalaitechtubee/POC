@@ -109,6 +109,34 @@ io.on('connection', (socket) => {
     broadcastStats();
   });
 
+  // ── Receive LIVE subtitle from Python (Vosk) ────────────────
+  socket.on('live_subtitle', (text) => {
+    if (!text.trim()) return;
+    // We don't store live subtitles in history usually, just broadcast for immediate display
+    io.emit('live_subtitle', text);
+  });
+
+  // ── Receive FINAL subtitle from Python (Faster-Whisper) ──────
+  socket.on('final_subtitle', (text) => {
+    if (!text.trim()) return;
+    
+    const entry = {
+      id:         stats.totalSent + 1,
+      text:       text.trim(),
+      source:     'faster-whisper',
+      timestamp:  new Date().toISOString(),
+    };
+
+    subtitleHistory.push(entry);
+    if (subtitleHistory.length > SUBTITLE_HISTORY) subtitleHistory.shift();
+    stats.totalSent++;
+
+    console.log(`[FINAL] "${entry.text}"`);
+    io.emit('final_subtitle', text); // User wants just text for final_subtitle event
+    io.emit('subtitle', entry);      // Also send as standard subtitle for history compatibility
+    broadcastStats();
+  });
+
   // ── Script upload from Python (optional) ─────────────
   socket.on('script_loaded', (data) => {
     console.log(`[SCRIPT] Script loaded: ${data?.line_count} lines`);
