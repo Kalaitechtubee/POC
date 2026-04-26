@@ -1,0 +1,24 @@
+# Python Dependencies
+# ====================
+# Install all at once:
+#   pip install -r requirements.txt
+#
+# Or individually per section below
+
+# ── Required: WebSocket client (Python → Node.js) ──────────
+python-socketio[client]>=5.11.0
+websocket-client>=1.7.0
+
+# ── Required: OpenAI Whisper (speech-to-text AI) ───────────
+openai-whisper>=20231117
+
+# ── Required: Audio capture ────────────────────────────────
+sounddevice>=0.4.6
+scipy>=1.11.0
+numpy>=1.24.0
+
+# ── Optional: Script matching with ML ──────────────────────
+sentence-transformers>=2.7.0
+
+# ── Optional: Flask (for Option 2 / testing HTTP mode) ─────
+flask>=3.0.0

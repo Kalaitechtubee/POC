@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🎤 Live Auto Subtitle — Monitor Dashboard</title>
+  <meta name="description" content="Real-time subtitle monitoring dashboard for Live Auto Subtitle System" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --bg-primary:    #0a0a0f;
+      --bg-card:       #12121a;
+      --bg-glass:      rgba(255,255,255,0.04);
+      --border:        rgba(255,255,255,0.08);
+      --accent-cyan:   #00d4ff;
+      --accent-purple: #8b5cf6;
+      --accent-green:  #10b981;
+      --accent-amber:  #f59e0b;
+      --accent-red:    #ef4444;
+      --text-primary:  #f0f0f8;
+      --text-muted:    #6b7280;
+      --text-dim:      #374151;
+      --radius:        12px;
+      --font-mono:     'JetBrains Mono', monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background:  var(--bg-primary);
+      color:       var(--text-primary);
+      min-height:  100vh;
+      overflow-x:  hidden;
+    }
+
+    /* ── Animated background ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 20% 10%, rgba(0,212,255,0.06) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 80% at 80% 90%, rgba(139,92,246,0.06) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container { position: relative; z-index: 1; max-width: 1400px; margin: 0 auto; padding: 24px; }
+
+    /* ── Header ── */
+    header {
+      display:         flex;
+      align-items:     center;
+      justify-content: space-between;
+      padding:         20px 28px;
+      background:      var(--bg-glass);
+      border:          1px solid var(--border);
+      border-radius:   var(--radius);
+      backdrop-filter: blur(20px);
+      margin-bottom:   24px;
+    }
+
+    .header-left { display: flex; align-items: center; gap: 16px; }
+    .logo-icon {
+      width: 44px; height: 44px;
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+    }
+    h1 { font-size: 1.3rem; font-weight: 700; letter-spacing: -0.02em; }
+    h1 span { color: var(--accent-cyan); }
+
+    .header-right { display: flex; align-items: center; gap: 12px; }
+
+    .status-pill {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 0.78rem; font-weight: 500;
+      border: 1px solid;
+      transition: all 0.3s ease;
+    }
+    .status-pill.connected    { background: rgba(16,185,129,0.12); border-color: rgba(16,185,129,0.3); color: var(--accent-green); }
+    .status-pill.disconnected { background: rgba(239,68,68,0.12);  border-color: rgba(239,68,68,0.3);  color: var(--accent-red); }
+
+    .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: currentColor;
+    }
+    .dot.pulse { animation: pulse 1.5s ease-in-out infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.8); } }
+
+    /* ── Stats grid ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    @media (max-width: 900px) { .stats-grid { grid-template-columns: repeat(2,1fr); } }
+    @media (max-width: 500px) { .stats-grid { grid-template-columns: 1fr; } }
+
+    .stat-card {
+      background:      var(--bg-card);
+      border:          1px solid var(--border);
+      border-radius:   var(--radius);
+      padding:         20px;
+      position:        relative;
+      overflow:        hidden;
+      transition:      transform 0.2s ease, border-color 0.3s ease;
+    }
+    .stat-card:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.15); }
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, var(--card-accent, rgba(0,212,255,0.05)), transparent 60%);
+      pointer-events: none;
+    }
+
+    .stat-label { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+    .stat-value { font-size: 2rem; font-weight: 700; font-family: var(--font-mono); color: var(--card-color, var(--accent-cyan)); }
+    .stat-icon  { position: absolute; right: 16px; top: 16px; font-size: 1.5rem; opacity: 0.3; }
+
+    /* ── Live subtitle display ── */
+    .subtitle-display {
+      background:    var(--bg-card);
+      border:        1px solid var(--border);
+      border-radius: var(--radius);
+      padding:       48px 40px;
+      text-align:    center;
+      margin-bottom: 24px;
+      position:      relative;
+      overflow:      hidden;
+      min-height:    200px;
+      display:       flex;
+      align-items:   center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .subtitle-display::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 70% 60% at 50% 50%, rgba(0,212,255,0.04), transparent 70%);
+    }
+
+    .subtitle-display .eyebrow {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--accent-cyan);
+      opacity: 0.7;
+    }
+
+    #current-subtitle {
+      font-size: clamp(1.4rem, 3vw, 2.4rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.3;
+      color: var(--text-primary);
+      position: relative;
+      z-index: 1;
+      transition: all 0.3s ease;
+      max-width: 900px;
+    }
+
+    #subtitle-meta {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+
+    .subtitle-flash {
+      animation: flash 0.4s ease;
+    }
+    @keyframes flash {
+      0%   { text-shadow: 0 0 40px rgba(0,212,255,0.8); color: var(--accent-cyan); }
+      100% { text-shadow: none; color: var(--text-primary); }
+    }
+
+    /* ── Main layout ── */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 24px;
+    }
+    @media (max-width: 900px) { .main-grid { grid-template-columns: 1fr; } }
+
+    /* ── History feed ── */
+    .section-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .section-title {
+      font-size: 0.85rem; font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    .btn-clear {
+      padding: 4px 12px;
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.25);
+      border-radius: 6px;
+      color: var(--accent-red);
+      font-size: 0.72rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .btn-clear:hover { background: rgba(239,68,68,0.2); }
+
+    .panel {
+      background:    var(--bg-card);
+      border:        1px solid var(--border);
+      border-radius: var(--radius);
+      overflow:      hidden;
+    }
+
+    .panel-header {
+      padding:        14px 18px;
+      border-bottom:  1px solid var(--border);
+      display:        flex;
+      align-items:    center;
+      justify-content: space-between;
+    }
+
+    #subtitle-log {
+      list-style: none;
+      max-height:  480px;
+      overflow-y:  auto;
+      padding:     8px 0;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+
+    #subtitle-log li {
+      padding:    12px 18px;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+      display:    flex;
+      gap:        12px;
+      align-items: flex-start;
+      animation:  slideIn 0.3s ease;
+      transition: background 0.2s ease;
+    }
+    #subtitle-log li:hover { background: rgba(255,255,255,0.02); }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(-12px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    .log-idx {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--text-dim);
+      min-width: 28px;
+      margin-top: 2px;
+    }
+
+    .log-body { flex: 1; }
+    .log-text  { font-size: 0.88rem; color: var(--text-primary); line-height: 1.4; }
+    .log-time  { font-size: 0.65rem; color: var(--text-muted); font-family: var(--font-mono); margin-top: 4px; }
+
+    .log-source {
+      font-size: 0.6rem; font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .log-source.whisper  { background: rgba(0,212,255,0.12); color: var(--accent-cyan); }
+    .log-source.matched  { background: rgba(139,92,246,0.12); color: var(--accent-purple); }
+    .log-source.test     { background: rgba(245,158,11,0.12); color: var(--accent-amber); }
+
+    /* ── Sidebar ── */
+    .sidebar { display: flex; flex-direction: column; gap: 20px; }
+
+    /* ── Clients panel ── */
+    .client-list { padding: 12px 0; }
+    .client-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 18px;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+    }
+    .client-row:last-child { border-bottom: none; }
+    .client-label { display: flex; align-items: center; gap: 10px; font-size: 0.82rem; }
+    .client-icon  { font-size: 1rem; }
+    .client-count {
+      font-family: var(--font-mono);
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--accent-cyan);
+    }
+
+    /* ── Config panel ── */
+    .config-panel { padding: 16px 18px; }
+    .config-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      font-size: 0.8rem;
+    }
+    .config-row:last-child { border-bottom: none; }
+    .config-key   { color: var(--text-muted); flex: 1; }
+    .config-val   { color: var(--accent-cyan); font-family: var(--font-mono); font-size: 0.75rem; }
+
+    /* ── Send test subtitle ── */
+    .test-panel { padding: 16px 18px; }
+    .test-input {
+      width: 100%; background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border); border-radius: 8px;
+      padding: 10px 12px; color: var(--text-primary);
+      font-size: 0.83rem; font-family: inherit;
+      margin-bottom: 10px; outline: none;
+      transition: border-color 0.2s ease;
+    }
+    .test-input:focus { border-color: var(--accent-cyan); }
+    .btn-send {
+      width: 100%; padding: 10px;
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+      border: none; border-radius: 8px;
+      color: #000; font-weight: 700; font-size: 0.82rem;
+      cursor: pointer;
+      transition: opacity 0.2s ease, transform 0.1s ease;
+    }
+    .btn-send:hover  { opacity: 0.9; }
+    .btn-send:active { transform: scale(0.98); }
+
+    /* ── Empty state ── */
+    .empty-state {
+      padding: 40px 20px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.82rem;
+    }
+    .empty-state .icon { font-size: 2rem; margin-bottom: 10px; }
+
+    /* ── Uptime clock ── */
+    #uptime { font-family: var(--font-mono); }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- Header -->
+  <header>
+    <div class="header-left">
+      <div class="logo-icon">🎤</div>
+      <div>
+        <h1>Live Auto <span>Subtitle</span></h1>
+        <div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;">Monitor Dashboard · Python Whisper → Node.js → Flutter</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div id="connection-status" class="status-pill disconnected">
+        <span class="dot" id="status-dot"></span>
+        <span id="status-text">Connecting…</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Stats row -->
+  <div class="stats-grid">
+    <div class="stat-card" style="--card-accent:rgba(0,212,255,0.06);--card-color:var(--accent-cyan);">
+      <div class="stat-icon">📊</div>
+      <div class="stat-label">Total Subtitles Sent</div>
+      <div class="stat-value" id="stat-total">0</div>
+    </div>
+    <div class="stat-card" style="--card-accent:rgba(16,185,129,0.06);--card-color:var(--accent-green);">
+      <div class="stat-icon">📱</div>
+      <div class="stat-label">Flutter Clients</div>
+      <div class="stat-value" id="stat-flutter">0</div>
+    </div>
+    <div class="stat-card" style="--card-accent:rgba(139,92,246,0.06);--card-color:var(--accent-purple);">
+      <div class="stat-icon">🐍</div>
+      <div class="stat-label">Python AI Connected</div>
+      <div class="stat-value" id="stat-python">0</div>
+    </div>
+    <div class="stat-card" style="--card-accent:rgba(245,158,11,0.06);--card-color:var(--accent-amber);">
+      <div class="stat-icon">⏱</div>
+      <div class="stat-label">Uptime</div>
+      <div class="stat-value" id="uptime" style="font-size:1.4rem;">00:00</div>
+    </div>
+  </div>
+
+  <!-- Live display -->
+  <div class="subtitle-display">
+    <div class="eyebrow">▶ Live Subtitle</div>
+    <div id="current-subtitle">Waiting for subtitles…</div>
+    <div id="subtitle-meta">—</div>
+  </div>
+
+  <!-- Main grid -->
+  <div class="main-grid">
+
+    <!-- History feed -->
+    <div>
+      <div class="section-header">
+        <div class="section-title">📜 Subtitle History</div>
+        <button class="btn-clear" id="btn-clear">Clear</button>
+      </div>
+      <div class="panel">
+        <ul id="subtitle-log">
+          <li class="empty-state" id="empty-msg">
+            <div class="icon">🎙</div>
+            <div>No subtitles yet — start Python script and speak into the mic</div>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+
+      <!-- Connected clients -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="section-title">🔌 Connected Clients</div>
+        </div>
+        <div class="client-list">
+          <div class="client-row">
+            <div class="client-label"><span class="client-icon">🐍</span> Python AI</div>
+            <div class="client-count" id="cl-python">0</div>
+          </div>
+          <div class="client-row">
+            <div class="client-label"><span class="client-icon">📱</span> Flutter App</div>
+            <div class="client-count" id="cl-flutter">0</div>
+          </div>
+          <div class="client-row">
+            <div class="client-label"><span class="client-icon">🌐</span> Web Monitor</div>
+            <div class="client-count" id="cl-web">0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Send test subtitle from browser -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="section-title">🧪 Send Test Subtitle</div>
+        </div>
+        <div class="test-panel">
+          <input id="test-text" class="test-input" type="text"
+                 placeholder="Type a subtitle and send to all clients…" />
+          <button class="btn-send" id="btn-send">⚡ Send to All Devices</button>
+        </div>
+      </div>
+
+      <!-- Server config -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="section-title">⚙ Server Info</div>
+        </div>
+        <div class="config-panel">
+          <div class="config-row"><span class="config-key">Port</span><span class="config-val">3000</span></div>
+          <div class="config-row"><span class="config-key">Transport</span><span class="config-val">WebSocket</span></div>
+          <div class="config-row"><span class="config-key">Library</span><span class="config-val">socket.io v4</span></div>
+          <div class="config-row"><span class="config-key">Flutter URL</span><span class="config-val" id="flutter-url">—</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- socket.io client from CDN -->
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script>
+  // ── Connect ─────────────────────────────────────────────
+  const socket = io({ query: { type: 'web' } });
+
+  let logCount = 0;
+
+  // ── Connection events ────────────────────────────────────
+  socket.on('connect', () => {
+    setStatus(true);
+    document.getElementById('flutter-url').textContent =
+      `http://${location.hostname}:3000`;
+  });
+  socket.on('disconnect', () => setStatus(false));
+
+  function setStatus(connected) {
+    const pill = document.getElementById('connection-status');
+    const dot  = document.getElementById('status-dot');
+    const txt  = document.getElementById('status-text');
+    pill.className = 'status-pill ' + (connected ? 'connected' : 'disconnected');
+    dot.className  = 'dot' + (connected ? ' pulse' : '');
+    txt.textContent = connected ? 'Connected' : 'Disconnected';
+  }
+
+  // ── Receive subtitle ────────────────────────────────────
+  socket.on('subtitle', (entry) => {
+    // Update live display
+    const el = document.getElementById('current-subtitle');
+    el.textContent = entry.text;
+    el.classList.remove('subtitle-flash');
+    void el.offsetWidth; // reflow
+    el.classList.add('subtitle-flash');
+
+    const meta = document.getElementById('subtitle-meta');
+    const conf = entry.confidence != null ? `  ·  confidence ${(entry.confidence * 100).toFixed(0)}%` : '';
+    meta.textContent = `#${entry.id}  ·  ${entry.source}${conf}  ·  ${new Date(entry.timestamp).toLocaleTimeString()}`;
+
+    // Add to log
+    addLogEntry(entry);
+  });
+
+  // ── History ─────────────────────────────────────────────
+  socket.on('history', (entries) => {
+    entries.forEach(addLogEntry);
+  });
+
+  function addLogEntry(entry) {
+    const emptyMsg = document.getElementById('empty-msg');
+    if (emptyMsg) emptyMsg.remove();
+
+    logCount++;
+    const ul = document.getElementById('subtitle-log');
+    const li = document.createElement('li');
+
+    const sourceClass = entry.source || 'whisper';
+    const conf = entry.confidence != null ? ` · ${(entry.confidence * 100).toFixed(0)}%` : '';
+
+    li.innerHTML = `
+      <div class="log-idx">#${entry.id || logCount}</div>
+      <div class="log-body">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+          <span class="log-source ${sourceClass}">${entry.source || 'whisper'}${conf}</span>
+        </div>
+        <div class="log-text">${escapeHtml(entry.text)}</div>
+        <div class="log-time">${new Date(entry.timestamp || Date.now()).toLocaleTimeString()}</div>
+      </div>`;
+
+    ul.insertBefore(li, ul.firstChild);
+
+    // Trim to 50
+    while (ul.children.length > 50) ul.removeChild(ul.lastChild);
+  }
+
+  // ── Stats ────────────────────────────────────────────────
+  socket.on('server_stats', (data) => {
+    document.getElementById('stat-total').textContent   = data.total_sent || 0;
+    document.getElementById('stat-flutter').textContent = data.connected?.flutter || 0;
+    document.getElementById('stat-python').textContent  = data.connected?.python  || 0;
+    document.getElementById('cl-python').textContent    = data.connected?.python  || 0;
+    document.getElementById('cl-flutter').textContent   = data.connected?.flutter || 0;
+    document.getElementById('cl-web').textContent       = data.connected?.web     || 0;
+
+    // Uptime
+    const s   = data.uptime_sec || 0;
+    const hrs = String(Math.floor(s / 3600)).padStart(2,'0');
+    const min = String(Math.floor((s % 3600) / 60)).padStart(2,'0');
+    const sec = String(s % 60).padStart(2,'0');
+    document.getElementById('uptime').textContent = hrs > 0 ? `${hrs}:${min}:${sec}` : `${min}:${sec}`;
+  });
+
+  // ── Send test subtitle from browser ─────────────────────
+  document.getElementById('btn-send').addEventListener('click', () => {
+    const text = document.getElementById('test-text').value.trim();
+    if (!text) return;
+    socket.emit('subtitle', { text, source: 'web-test', confidence: null, timestamp: new Date().toISOString() });
+    document.getElementById('test-text').value = '';
+  });
+
+  document.getElementById('test-text').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') document.getElementById('btn-send').click();
+  });
+
+  // ── Clear log ────────────────────────────────────────────
+  document.getElementById('btn-clear').addEventListener('click', () => {
+    document.getElementById('subtitle-log').innerHTML = `
+      <li class="empty-state" id="empty-msg">
+        <div class="icon">🎙</div>
+        <div>Log cleared</div>
+      </li>`;
+    logCount = 0;
+  });
+
+  function escapeHtml(t) {
+    return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+</script>
+</body>
+</html>
