@@ -12,7 +12,7 @@ import 'package:socket_io_client/socket_io_client.dart' as IO;
 // Running on Chrome/Windows on the same machine → use localhost
 // Running on a real Android/iOS device → replace with your LAN IP
 //   e.g. '192.168.1.100'  (find it with: ipconfig)
-const String SERVER_IP   = 'localhost';
+const String SERVER_IP   = '192.168.31.170';
 const int    SERVER_PORT = 3000;
 
 void main() {
@@ -58,6 +58,7 @@ class SubtitleApp extends StatelessWidget {
 class SubtitleEntry {
   final int    id;
   final String text;
+  final String translated;
   final String source;
   final double? confidence;
   final DateTime timestamp;
@@ -65,6 +66,7 @@ class SubtitleEntry {
   const SubtitleEntry({
     required this.id,
     required this.text,
+    this.translated = '',
     required this.source,
     this.confidence,
     required this.timestamp,
@@ -74,6 +76,7 @@ class SubtitleEntry {
     return SubtitleEntry(
       id:         m['id']         ?? fallbackId,
       text:       m['text']?.toString() ?? '',
+      translated: m['translated']?.toString() ?? '',
       source:     m['source']     ?? 'whisper',
       confidence: m['confidence'] != null ? (m['confidence'] as num).toDouble() : null,
       timestamp:  m['timestamp']  != null
@@ -99,8 +102,9 @@ class _SubtitleScreenState extends State<SubtitleScreen>
   bool       _connected = false;
 
   // Subtitle state
-  SubtitleEntry? _current;
+  final ScrollController _scrollController = ScrollController();
   String _liveText = '';
+  String _translatedText = '';
   bool _isFinal = true;
   final List<SubtitleEntry> _history = [];
   int _localCounter = 0;
@@ -156,69 +160,139 @@ class _SubtitleScreenState extends State<SubtitleScreen>
     });
 
     _socket!.on('subtitle', (data) {
-      _handleSubtitle(data);
+      // Direct append for standard subtitle events
+      if (data != null) {
+        setState(() {
+          _history.add(SubtitleEntry(
+            id: ++_localCounter,
+            text: data is Map ? (data['text'] ?? '') : data.toString(),
+            translated: data is Map ? (data['translated'] ?? '') : '',
+            source: 'server',
+            timestamp: DateTime.now(),
+          ));
+        });
+        _scrollToBottom();
+      }
     });
 
     _socket!.on('live_subtitle', (data) {
-      setState(() {
-        _liveText = data.toString();
-        _isFinal = false;
-      });
+      String newText = '';
+      String newTrans = '';
+      if (data is Map) {
+        newText = data['text']?.toString() ?? '';
+        newTrans = data['translated']?.toString() ?? '';
+      } else {
+        newText = data.toString();
+      }
+
+      if (newText.isNotEmpty) {
+        setState(() {
+          _liveText = newText;
+          _translatedText = newTrans;
+          _isFinal = false;
+        });
+        _scrollToBottom();
+      }
     });
 
     _socket!.on('final_subtitle', (data) {
-      setState(() {
-        _liveText = data.toString();
-        _isFinal = true;
-      });
-      // Note: the 'subtitle' event will also trigger and add to history
+      String newText = '';
+      String newTrans = '';
+      if (data is Map) {
+        newText = data['text']?.toString() ?? '';
+        newTrans = data['translated']?.toString() ?? '';
+      } else {
+        newText = data.toString();
+      }
+
+      if (newText.isNotEmpty) {
+        setState(() {
+          _liveText = '';
+          _translatedText = '';
+          _isFinal = true;
+          _history.add(SubtitleEntry(
+            id: ++_localCounter,
+            text: newText,
+            translated: newTrans,
+            source: 'whisper',
+            timestamp: DateTime.now(),
+          ));
+        });
+        _scrollToBottom();
+      }
     });
 
     _socket!.on('history', (data) {
       if (data is List) {
         setState(() {
+          _history.clear();
           for (final item in data) {
             if (item is Map<String, dynamic>) {
               _history.add(SubtitleEntry.fromMap(item, ++_localCounter));
             }
           }
         });
+        _scrollToBottom();
       }
     });
   }
 
-  void _handleSubtitle(dynamic data) {
-    _localCounter++;
-    SubtitleEntry entry;
-
-    if (data is Map<String, dynamic>) {
-      entry = SubtitleEntry.fromMap(data, _localCounter);
-    } else {
-      entry = SubtitleEntry(
-        id: _localCounter, text: data.toString(),
-        source: 'whisper', timestamp: DateTime.now(),
-      );
-    }
-
-    if (entry.text.isEmpty) return;
-
-    setState(() {
-      _current = entry;
-      // We don't necessarily clear _liveText here because final_subtitle sets it.
-      // But if it's a regular subtitle (not from the live/final flow), we might want to.
-      _history.insert(0, entry);
-      if (_history.length > 100) _history.removeLast();
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
     });
+  }
 
-    // Flash animation
-    _flashCtrl.forward(from: 0);
 
-    // Haptic
-    HapticFeedback.lightImpact();
+  Widget _buildSubtitleRow(String en, String ta, {bool isLive = false}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 20),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: Colors.white.withOpacity(0.05))),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // LEFT SIDE (ENGLISH)
+          Expanded(
+            child: Text(
+              en,
+              style: TextStyle(
+                color: isLive ? const Color(0xFF00D4FF) : Colors.white,
+                fontSize: _fontSize,
+                fontWeight: FontWeight.bold,
+                height: 1.2,
+              ),
+            ),
+          ),
+          const SizedBox(width: 24),
+          // RIGHT SIDE (TRANSLATION)
+          Expanded(
+            child: Text(
+              ta,
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                color: Colors.grey.shade500,
+                fontSize: _fontSize * 0.85,
+                fontWeight: FontWeight.w400,
+                height: 1.3,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _flashCtrl.dispose();
     _socket?.dispose();
     super.dispose();
@@ -301,59 +375,24 @@ class _SubtitleScreenState extends State<SubtitleScreen>
   Widget _buildSubtitleDisplay() {
     return GestureDetector(
       onDoubleTap: () => setState(() => _showHistory = true),
-      child: Container(
-        width:   double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 40),
-        child:   Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (_showSettings) _buildSettings(),
-            const Spacer(),
-
-            // Eyebrow
-            if (_current != null)
-              Text(
-                '▶  LIVE',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.2,
-                  color: _isFinal ? const Color(0xFF10B981) : const Color(0xFF00D4FF),
-                ),
-              ),
-
-            const SizedBox(height: 16),
-
-            // Main subtitle text
-            AnimatedBuilder(
-              animation: _flashAnim,
-              builder: (_, __) => AnimatedDefaultTextStyle(
-                duration: const Duration(milliseconds: 200),
-                style: TextStyle(
-                  fontSize:   _fontSize,
-                  fontWeight: FontWeight.w700,
-                  height:     1.35,
-                  letterSpacing: -0.02,
-                  color: _current != null
-                    ? (_flashCtrl.isAnimating ? _flashAnim.value! : Colors.white)
-                    : const Color(0xFF374151),
-                ),
-                child: Text(
-                  _liveText.isNotEmpty ? _liveText : (_current?.text ?? 'Waiting for subtitles…'),
-                  textAlign: TextAlign.center,
-                ),
-              ),
+      child: Column(
+        children: [
+          if (_showSettings) _buildSettings(),
+          Expanded(
+            child: ListView.builder(
+              controller: _scrollController,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+              itemCount: _history.length + (_liveText.isNotEmpty ? 1 : 0),
+              itemBuilder: (context, index) {
+                if (index == _history.length) {
+                  return _buildSubtitleRow(_liveText, _translatedText, isLive: true);
+                }
+                final entry = _history[index];
+                return _buildSubtitleRow(entry.text, entry.translated);
+              },
             ),
-
-            const SizedBox(height: 16),
-
-            // Meta info
-            if (_current != null && (_showTimestamp || _showSource))
-              _buildMeta(_current!),
-
-            const Spacer(),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -533,6 +572,35 @@ class _SubtitleScreenState extends State<SubtitleScreen>
         border:       Border.all(color: color.withOpacity(0.3)),
       ),
       child: Text(source, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: color, letterSpacing: 0.06)),
+    );
+  }
+}
+
+// ── Blinking Cursor for Typing effect ──────────────────────
+class BlinkingCursor extends StatefulWidget {
+  const BlinkingCursor({super.key});
+  @override
+  State<BlinkingCursor> createState() => _BlinkingCursorState();
+}
+
+class _BlinkingCursorState extends State<BlinkingCursor> with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 500))..repeat(reverse: true);
+  }
+  @override
+  void dispose() { _ctrl.dispose(); super.dispose(); }
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _ctrl,
+      child: Container(
+        width: 12, height: 24,
+        margin: const EdgeInsets.only(left: 4, top: 4),
+        color: const Color(0xFF00D4FF),
+      ),
     );
   }
 }

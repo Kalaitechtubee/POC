@@ -3,592 +3,867 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>🎤 Live Auto Subtitle — Monitor Dashboard</title>
-  <meta name="description" content="Real-time subtitle monitoring dashboard for Live Auto Subtitle System" />
+  <title>PRO Monitor — Live Subtitles</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Outfit:wght@500;700;800&family=Noto+Sans+Tamil:wght@400;500&display=swap" rel="stylesheet" />
 
   <style>
     :root {
-      --bg-primary:    #0a0a0f;
-      --bg-card:       #12121a;
-      --bg-glass:      rgba(255,255,255,0.04);
-      --border:        rgba(255,255,255,0.08);
-      --accent-cyan:   #00d4ff;
-      --accent-purple: #8b5cf6;
-      --accent-green:  #10b981;
-      --accent-amber:  #f59e0b;
-      --accent-red:    #ef4444;
-      --text-primary:  #f0f0f8;
-      --text-muted:    #6b7280;
-      --text-dim:      #374151;
-      --radius:        12px;
-      --font-mono:     'JetBrains Mono', monospace;
+      --bg:        #000000;
+      --surface:   #0d0d0d;
+      --border:    #1e1e1e;
+      --text:      #ffffff;
+      --dim:       #444444;
+      --muted:     #888888;
+      --live:      #00D4FF;
+      --live-dim:  rgba(0, 212, 255, 0.12);
+      --final:     #ffffff;
+      --trans:     #aaaaaa;
+      --online:    #44ff88;
+      --warn:      #ffcc44;
+      --danger:    #ff4444;
     }
 
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
-    body {
+    html, body {
+      height: 100%;
+      overflow: hidden;
       font-family: 'Inter', sans-serif;
-      background:  var(--bg-primary);
-      color:       var(--text-primary);
-      min-height:  100vh;
-      overflow-x:  hidden;
+      background: var(--bg);
+      color: var(--text);
     }
 
-    /* ── Animated background ── */
-    body::before {
-      content: '';
+    /* ── HEADER ──────────────────────────────────────────── */
+    .header {
       position: fixed;
-      inset: 0;
-      background:
-        radial-gradient(ellipse 80% 60% at 20% 10%, rgba(0,212,255,0.06) 0%, transparent 60%),
-        radial-gradient(ellipse 60% 80% at 80% 90%, rgba(139,92,246,0.06) 0%, transparent 60%);
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    .container { position: relative; z-index: 1; max-width: 1400px; margin: 0 auto; padding: 24px; }
-
-    /* ── Header ── */
-    header {
-      display:         flex;
-      align-items:     center;
+      top: 0; left: 0; right: 0;
+      height: 56px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
       justify-content: space-between;
-      padding:         20px 28px;
-      background:      var(--bg-glass);
-      border:          1px solid var(--border);
-      border-radius:   var(--radius);
-      backdrop-filter: blur(20px);
-      margin-bottom:   24px;
+      padding: 0 32px;
+      z-index: 100;
     }
 
-    .header-left { display: flex; align-items: center; gap: 16px; }
-    .logo-icon {
-      width: 44px; height: 44px;
-      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
-      border-radius: 10px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 22px;
-    }
-    h1 { font-size: 1.3rem; font-weight: 700; letter-spacing: -0.02em; }
-    h1 span { color: var(--accent-cyan); }
-
-    .header-right { display: flex; align-items: center; gap: 12px; }
-
-    .status-pill {
-      display: flex; align-items: center; gap: 8px;
-      padding: 6px 14px;
-      border-radius: 999px;
-      font-size: 0.78rem; font-weight: 500;
-      border: 1px solid;
-      transition: all 0.3s ease;
-    }
-    .status-pill.connected    { background: rgba(16,185,129,0.12); border-color: rgba(16,185,129,0.3); color: var(--accent-green); }
-    .status-pill.disconnected { background: rgba(239,68,68,0.12);  border-color: rgba(239,68,68,0.3);  color: var(--accent-red); }
-
-    .dot {
-      width: 8px; height: 8px; border-radius: 50%;
-      background: currentColor;
-    }
-    .dot.pulse { animation: pulse 1.5s ease-in-out infinite; }
-    @keyframes pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.8); } }
-
-    /* ── Stats grid ── */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 16px;
-      margin-bottom: 24px;
-    }
-    @media (max-width: 900px) { .stats-grid { grid-template-columns: repeat(2,1fr); } }
-    @media (max-width: 500px) { .stats-grid { grid-template-columns: 1fr; } }
-
-    .stat-card {
-      background:      var(--bg-card);
-      border:          1px solid var(--border);
-      border-radius:   var(--radius);
-      padding:         20px;
-      position:        relative;
-      overflow:        hidden;
-      transition:      transform 0.2s ease, border-color 0.3s ease;
-    }
-    .stat-card:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.15); }
-    .stat-card::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(135deg, var(--card-accent, rgba(0,212,255,0.05)), transparent 60%);
-      pointer-events: none;
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
     }
 
-    .stat-label { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
-    .stat-value { font-size: 2rem; font-weight: 700; font-family: var(--font-mono); color: var(--card-color, var(--accent-cyan)); }
-    .stat-icon  { position: absolute; right: 16px; top: 16px; font-size: 1.5rem; opacity: 0.3; }
+    .brand {
+      font-family: 'Outfit', sans-serif;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--text);
+    }
 
-    /* ── Live subtitle display ── */
-    .subtitle-display {
-      background:    var(--bg-card);
-      border:        1px solid var(--border);
-      border-radius: var(--radius);
-      padding:       48px 40px;
-      text-align:    center;
-      margin-bottom: 24px;
-      position:      relative;
-      overflow:      hidden;
-      min-height:    200px;
-      display:       flex;
-      align-items:   center;
-      justify-content: center;
-      flex-direction: column;
+    .live-badge {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      color: var(--online);
+      border: 1px solid rgba(68,255,136,0.3);
+      border-radius: 20px;
+      padding: 3px 9px;
+    }
+
+    .live-dot {
+      width: 5px; height: 5px;
+      background: var(--online);
+      border-radius: 50%;
+      animation: pulse 1.4s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50%      { opacity: 0.3; transform: scale(0.6); }
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
       gap: 12px;
     }
 
-    .subtitle-display::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(ellipse 70% 60% at 50% 50%, rgba(0,212,255,0.04), transparent 70%);
-    }
-
-    .subtitle-display .eyebrow {
-      font-size: 0.7rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.14em;
-      color: var(--accent-cyan);
-      opacity: 0.7;
-    }
-
-    #current-subtitle {
-      font-size: clamp(1.4rem, 3vw, 2.4rem);
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      line-height: 1.3;
-      color: var(--text-primary);
+    /* ── Language Select ─────────────────────────────────── */
+    .custom-select {
       position: relative;
-      z-index: 1;
-      transition: all 0.3s ease;
-      max-width: 900px;
+      width: 160px;
+      user-select: none;
     }
 
-    #subtitle-meta {
-      font-size: 0.72rem;
-      color: var(--text-muted);
-      font-family: var(--font-mono);
-    }
-
-    .subtitle-flash {
-      animation: flash 0.4s ease;
-    }
-    @keyframes flash {
-      0%   { text-shadow: 0 0 40px rgba(0,212,255,0.8); color: var(--accent-cyan); }
-      100% { text-shadow: none; color: var(--text-primary); }
-    }
-
-    /* ── Main layout ── */
-    .main-grid {
-      display: grid;
-      grid-template-columns: 1fr 340px;
-      gap: 24px;
-    }
-    @media (max-width: 900px) { .main-grid { grid-template-columns: 1fr; } }
-
-    /* ── History feed ── */
-    .section-header {
-      display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 14px;
-    }
-    .section-title {
-      font-size: 0.85rem; font-weight: 600;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      display: flex; align-items: center; gap: 8px;
-    }
-
-    .btn-clear {
-      padding: 4px 12px;
-      background: rgba(239,68,68,0.1);
-      border: 1px solid rgba(239,68,68,0.25);
+    .select-trigger {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 14px;
       border-radius: 6px;
-      color: var(--accent-red);
-      font-size: 0.72rem;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
       cursor: pointer;
-      transition: all 0.2s ease;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: border-color 0.2s;
     }
-    .btn-clear:hover { background: rgba(239,68,68,0.2); }
+    .select-trigger:hover { border-color: #444; }
+    .select-trigger::after {
+      content: '▾';
+      font-size: 11px;
+      opacity: 0.5;
+    }
+
+    .select-options {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0; right: 0;
+      background: #111;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+      display: none;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.6);
+      z-index: 200;
+    }
+    .select-options.show { display: block; }
+
+    .option {
+      padding: 10px 14px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--dim);
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+    .option:hover  { background: #1a1a1a; color: #fff; }
+    .option.active { color: #fff; background: #161616; }
+
+    /* ── Reset Button ────────────────────────────────────── */
+    .btn-reset {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 7px 16px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-reset:hover { border-color: var(--danger); color: var(--danger); }
+
+    /* ── COLUMN LABELS ───────────────────────────────────── */
+    .col-labels {
+      position: fixed;
+      top: 56px; left: 0; right: 0;
+      height: 36px;
+      display: grid;
+      grid-template-columns: 1fr 1px 1fr;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      z-index: 90;
+    }
+
+    .col-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 32px;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--dim);
+    }
+    .col-label.right { justify-content: flex-end; }
+
+    .col-pip {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: var(--live);
+    }
+    .col-pip.tl { background: var(--trans); }
+
+    .col-divider { background: var(--border); }
+
+    /* ── MAIN PANELS ─────────────────────────────────────── */
+    .panels {
+      position: fixed;
+      top: 92px;       /* header 56 + labels 36 */
+      bottom: 48px;    /* footer */
+      left: 0; right: 0;
+      display: grid;
+      grid-template-columns: 1fr 1px 1fr;
+    }
 
     .panel {
-      background:    var(--bg-card);
-      border:        1px solid var(--border);
-      border-radius: var(--radius);
-      overflow:      hidden;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 32px 40px 120px;
+      scroll-behavior: smooth;
     }
 
-    .panel-header {
-      padding:        14px 18px;
-      border-bottom:  1px solid var(--border);
-      display:        flex;
-      align-items:    center;
-      justify-content: space-between;
+    /* Hide scrollbar visually but keep it functional */
+    .panel::-webkit-scrollbar { width: 3px; }
+    .panel::-webkit-scrollbar-track { background: transparent; }
+    .panel::-webkit-scrollbar-thumb {
+      background: #2a2a2a;
+      border-radius: 2px;
+    }
+    .panel::-webkit-scrollbar-thumb:hover { background: #444; }
+
+    .panel-divider { background: var(--border); }
+
+    /* ── TEXT ────────────────────────────────────────────── */
+    .segment {
+      margin-bottom: 6px;
     }
 
-    #subtitle-log {
-      list-style: none;
-      max-height:  480px;
-      overflow-y:  auto;
-      padding:     8px 0;
-      scrollbar-width: thin;
-      scrollbar-color: var(--border) transparent;
+    /* finalized sentence */
+    .sentence {
+      font-size: clamp(18px, 1.7vw, 24px);
+      font-weight: 600;
+      line-height: 1.85;
+      color: var(--final);
+      display: inline;
     }
 
-    #subtitle-log li {
-      padding:    12px 18px;
-      border-bottom: 1px solid rgba(255,255,255,0.03);
-      display:    flex;
-      gap:        12px;
-      align-items: flex-start;
-      animation:  slideIn 0.3s ease;
-      transition: background 0.2s ease;
-    }
-    #subtitle-log li:hover { background: rgba(255,255,255,0.02); }
-
-    @keyframes slideIn {
-      from { opacity: 0; transform: translateX(-12px); }
-      to   { opacity: 1; transform: translateX(0); }
+    .sentence::after {
+      content: ' ';
     }
 
-    .log-idx {
-      font-family: var(--font-mono);
-      font-size: 0.65rem;
-      color: var(--text-dim);
-      min-width: 28px;
-      margin-top: 2px;
+    .sentence.latest {
+      color: var(--live) !important;
+      text-shadow: 0 0 12px rgba(0, 212, 255, 0.3);
+      transition: color 0.3s ease;
     }
 
-    .log-body { flex: 1; }
-    .log-text  { font-size: 0.88rem; color: var(--text-primary); line-height: 1.4; }
-    .log-time  { font-size: 0.65rem; color: var(--text-muted); font-family: var(--font-mono); margin-top: 4px; }
-
-    .log-source {
-      font-size: 0.6rem; font-weight: 600;
-      padding: 2px 7px;
-      border-radius: 4px;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+    /* Word-by-word cursor */
+    .cursor {
+      display: inline-block;
+      width: 2px;
+      height: 1em;
+      background: var(--live);
+      margin-left: 2px;
+      vertical-align: middle;
+      animation: blink 0.8s steps(2) infinite;
     }
-    .log-source.whisper  { background: rgba(0,212,255,0.12); color: var(--accent-cyan); }
-    .log-source.matched  { background: rgba(139,92,246,0.12); color: var(--accent-purple); }
-    .log-source.test     { background: rgba(245,158,11,0.12); color: var(--accent-amber); }
 
-    /* ── Sidebar ── */
-    .sidebar { display: flex; flex-direction: column; gap: 20px; }
-
-    /* ── Clients panel ── */
-    .client-list { padding: 12px 0; }
-    .client-row {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 10px 18px;
-      border-bottom: 1px solid rgba(255,255,255,0.03);
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
     }
-    .client-row:last-child { border-bottom: none; }
-    .client-label { display: flex; align-items: center; gap: 10px; font-size: 0.82rem; }
-    .client-icon  { font-size: 1rem; }
-    .client-count {
-      font-family: var(--font-mono);
-      font-size: 1rem;
+
+    .para-break {
+      display: block;
+      height: 24px;
+      margin-bottom: 8px;
+    }
+
+    /* right panel: Tamil/regional */
+    .panel.right .sentence {
+      font-family: 'Noto Sans Tamil', 'Inter', sans-serif;
+      font-weight: 400;
+      font-size: clamp(16px, 1.6vw, 22px);
+      line-height: 2.1;
+      color: var(--trans);
+    }
+
+    /* live/partial word stream */
+    .partial-line {
+      font-size: clamp(18px, 1.7vw, 24px);
       font-weight: 700;
-      color: var(--accent-cyan);
+      line-height: 1.85;
+      color: var(--live);
+      display: inline;
     }
 
-    /* ── Config panel ── */
-    .config-panel { padding: 16px 18px; }
-    .config-row {
-      display: flex; align-items: center; gap: 10px;
-      padding: 8px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.04);
-      font-size: 0.8rem;
+    .panel.right .partial-line {
+      font-family: 'Noto Sans Tamil', 'Inter', sans-serif;
+      font-size: clamp(16px, 1.6vw, 22px);
+      line-height: 2.1;
+      color: rgba(0, 212, 255, 0.7);
     }
-    .config-row:last-child { border-bottom: none; }
-    .config-key   { color: var(--text-muted); flex: 1; }
-    .config-val   { color: var(--accent-cyan); font-family: var(--font-mono); font-size: 0.75rem; }
 
-    /* ── Send test subtitle ── */
-    .test-panel { padding: 16px 18px; }
-    .test-input {
-      width: 100%; background: rgba(255,255,255,0.04);
-      border: 1px solid var(--border); border-radius: 8px;
-      padding: 10px 12px; color: var(--text-primary);
-      font-size: 0.83rem; font-family: inherit;
-      margin-bottom: 10px; outline: none;
-      transition: border-color 0.2s ease;
+    /* blinking cursor */
+    .cursor {
+      display: inline-block;
+      width: 2px;
+      height: 1em;
+      margin-left: 2px;
+      vertical-align: text-bottom;
     }
-    .test-input:focus { border-color: var(--accent-cyan); }
-    .btn-send {
-      width: 100%; padding: 10px;
-      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
-      border: none; border-radius: 8px;
-      color: #000; font-weight: 700; font-size: 0.82rem;
-      cursor: pointer;
-      transition: opacity 0.2s ease, transform 0.1s ease;
-    }
-    .btn-send:hover  { opacity: 0.9; }
-    .btn-send:active { transform: scale(0.98); }
 
-    /* ── Empty state ── */
-    .empty-state {
-      padding: 40px 20px;
+    .cursor::after {
+      content: "|";
+      color: var(--live);
+      font-weight: 700;
+      animation: blink 1s infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0; }
+    }
+
+    /* paragraph break marker */
+    .para-break {
+      display: block;
+      height: 28px;
+    }
+
+    /* session restart marker */
+    .session-mark {
+      display: block;
+      margin: 20px 0 16px;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      color: var(--dim);
+      text-transform: uppercase;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    /* awaiting state */
+    .await-hint {
+      color: var(--dim);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-top: 40px;
       text-align: center;
-      color: var(--text-muted);
-      font-size: 0.82rem;
     }
-    .empty-state .icon { font-size: 2rem; margin-bottom: 10px; }
 
-    /* ── Uptime clock ── */
-    #uptime { font-family: var(--font-mono); }
+    /* ── SCROLL-TO-BOTTOM BUTTONS ────────────────────────── */
+    .scroll-btn {
+      position: fixed;
+      bottom: 60px;
+      background: #111;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      padding: 5px 14px;
+      border-radius: 20px;
+      cursor: pointer;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+      z-index: 80;
+    }
+    .scroll-btn.visible { opacity: 1; pointer-events: all; }
+    .scroll-btn:hover { border-color: var(--live); color: var(--live); }
+    #scrollBtnLeft  { left: 22%; }
+    #scrollBtnRight { right: 22%; }
+
+    /* ── FOOTER ──────────────────────────────────────────── */
+    .footer {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      height: 48px;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      z-index: 100;
+    }
+
+    .status-area {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--dim);
+    }
+
+    #status-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--dim);
+      transition: background 0.3s;
+    }
+    #status-dot.online  { background: var(--online); box-shadow: 0 0 6px var(--online); }
+    #status-dot.warn    { background: var(--warn); }
+    #status-dot.offline { background: var(--danger); }
+
+    .word-count {
+      font-family: 'Outfit', monospace;
+      font-size: 10px;
+      color: var(--dim);
+    }
   </style>
 </head>
 <body>
 
-<div class="container">
-
-  <!-- Header -->
-  <header>
-    <div class="header-left">
-      <div class="logo-icon">🎤</div>
-      <div>
-        <h1>Live Auto <span>Subtitle</span></h1>
-        <div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;">Monitor Dashboard · Python Whisper → Node.js → Flutter</div>
-      </div>
-    </div>
-    <div class="header-right">
-      <div id="connection-status" class="status-pill disconnected">
-        <span class="dot" id="status-dot"></span>
-        <span id="status-text">Connecting…</span>
-      </div>
-    </div>
-  </header>
-
-  <!-- Stats row -->
-  <div class="stats-grid">
-    <div class="stat-card" style="--card-accent:rgba(0,212,255,0.06);--card-color:var(--accent-cyan);">
-      <div class="stat-icon">📊</div>
-      <div class="stat-label">Total Subtitles Sent</div>
-      <div class="stat-value" id="stat-total">0</div>
-    </div>
-    <div class="stat-card" style="--card-accent:rgba(16,185,129,0.06);--card-color:var(--accent-green);">
-      <div class="stat-icon">📱</div>
-      <div class="stat-label">Flutter Clients</div>
-      <div class="stat-value" id="stat-flutter">0</div>
-    </div>
-    <div class="stat-card" style="--card-accent:rgba(139,92,246,0.06);--card-color:var(--accent-purple);">
-      <div class="stat-icon">🐍</div>
-      <div class="stat-label">Python AI Connected</div>
-      <div class="stat-value" id="stat-python">0</div>
-    </div>
-    <div class="stat-card" style="--card-accent:rgba(245,158,11,0.06);--card-color:var(--accent-amber);">
-      <div class="stat-icon">⏱</div>
-      <div class="stat-label">Uptime</div>
-      <div class="stat-value" id="uptime" style="font-size:1.4rem;">00:00</div>
-    </div>
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <div class="brand">LiveScript Pro</div>
+    <div class="live-badge"><div class="live-dot"></div>LIVE</div>
   </div>
-
-  <!-- Live display -->
-  <div class="subtitle-display">
-    <div class="eyebrow">▶ Live Subtitle</div>
-    <div id="current-subtitle">Waiting for subtitles…</div>
-    <div id="subtitle-meta">—</div>
-  </div>
-
-  <!-- Main grid -->
-  <div class="main-grid">
-
-    <!-- History feed -->
-    <div>
-      <div class="section-header">
-        <div class="section-title">📜 Subtitle History</div>
-        <button class="btn-clear" id="btn-clear">Clear</button>
+  <div class="header-right">
+    <div class="custom-select">
+      <div class="select-trigger" id="lang-trigger">
+        <span id="selected-lang">TAMIL</span>
       </div>
-      <div class="panel">
-        <ul id="subtitle-log">
-          <li class="empty-state" id="empty-msg">
-            <div class="icon">🎙</div>
-            <div>No subtitles yet — start Python script and speak into the mic</div>
-          </li>
-        </ul>
+      <div class="select-options" id="lang-options">
+        <div class="option active" data-value="ta">TAMIL</div>
+        <div class="option" data-value="te">TELUGU</div>
+        <div class="option" data-value="kn">KANNADA</div>
+        <div class="option" data-value="ml">MALAYALAM</div>
+        <div class="option" data-value="hi">HINDI</div>
       </div>
     </div>
-
-    <!-- Sidebar -->
-    <div class="sidebar">
-
-      <!-- Connected clients -->
-      <div class="panel">
-        <div class="panel-header">
-          <div class="section-title">🔌 Connected Clients</div>
-        </div>
-        <div class="client-list">
-          <div class="client-row">
-            <div class="client-label"><span class="client-icon">🐍</span> Python AI</div>
-            <div class="client-count" id="cl-python">0</div>
-          </div>
-          <div class="client-row">
-            <div class="client-label"><span class="client-icon">📱</span> Flutter App</div>
-            <div class="client-count" id="cl-flutter">0</div>
-          </div>
-          <div class="client-row">
-            <div class="client-label"><span class="client-icon">🌐</span> Web Monitor</div>
-            <div class="client-count" id="cl-web">0</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Send test subtitle from browser -->
-      <div class="panel">
-        <div class="panel-header">
-          <div class="section-title">🧪 Send Test Subtitle</div>
-        </div>
-        <div class="test-panel">
-          <input id="test-text" class="test-input" type="text"
-                 placeholder="Type a subtitle and send to all clients…" />
-          <button class="btn-send" id="btn-send">⚡ Send to All Devices</button>
-        </div>
-      </div>
-
-      <!-- Server config -->
-      <div class="panel">
-        <div class="panel-header">
-          <div class="section-title">⚙ Server Info</div>
-        </div>
-        <div class="config-panel">
-          <div class="config-row"><span class="config-key">Port</span><span class="config-val">3000</span></div>
-          <div class="config-row"><span class="config-key">Transport</span><span class="config-val">WebSocket</span></div>
-          <div class="config-row"><span class="config-key">Library</span><span class="config-val">socket.io v4</span></div>
-          <div class="config-row"><span class="config-key">Flutter URL</span><span class="config-val" id="flutter-url">—</span></div>
-        </div>
-      </div>
-
-    </div>
+    <button class="btn-reset" id="btn-reset">↺ Reset</button>
   </div>
 </div>
 
-<!-- socket.io client from CDN -->
-<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<!-- COLUMN LABELS -->
+<div class="col-labels">
+  <div class="col-label">
+    <div class="col-pip"></div>
+    English — Source
+  </div>
+  <div class="col-divider"></div>
+  <div class="col-label right">
+    Translation — Target
+    <div class="col-pip tl"></div>
+  </div>
+</div>
+
+<!-- PANELS -->
+<div class="panels">
+  <div class="panel left" id="panelLeft">
+    <p class="await-hint" id="awaitLeft">Awaiting speech…</p>
+  </div>
+
+  <div class="panel-divider"></div>
+
+  <div class="panel right" id="panelRight">
+    <p class="await-hint" id="awaitRight">Translation will appear here</p>
+  </div>
+</div>
+
+<!-- SCROLL BUTTONS -->
+<button class="scroll-btn" id="scrollBtnLeft"  onclick="jumpToBottom('left')">↓ Latest</button>
+<button class="scroll-btn" id="scrollBtnRight" onclick="jumpToBottom('right')">↓ Latest</button>
+
+<!-- FOOTER -->
+<div class="footer">
+  <div class="status-area">
+    <div id="status-dot" class="online"></div>
+    <span id="status-text">System Online</span>
+  </div>
+  <div class="word-count" id="word-count">0 words</div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
 <script>
-  // ── Connect ─────────────────────────────────────────────
+  // ── DOM refs ──────────────────────────────────────────────
+  const panelLeft    = document.getElementById('panelLeft');
+  const panelRight   = document.getElementById('panelRight');
+  const awaitLeft    = document.getElementById('awaitLeft');
+  const awaitRight   = document.getElementById('awaitRight');
+  const btnReset     = document.getElementById('btn-reset');
+  const langTrigger  = document.getElementById('lang-trigger');
+  const langOptions  = document.getElementById('lang-options');
+  const selectedLang = document.getElementById('selected-lang');
+  const wordCountEl  = document.getElementById('word-count');
+
+  // ── State ─────────────────────────────────────────────────
+  let enWordCount    = 0;
+  let autoScrollLeft = true;
+  let autoScrollRight= true;
+
+  // Streaming Engine State
+  let lastEnWordCount = 0;   
+  let lastTlText      = "";  
+  let activeEnSpan    = null; 
+  let activeTlSpan    = null; 
+  
+  // Word Typing Queue (Smoothness)
+  let wordQueue       = [];
+  let typingTimer     = null;
+  const TYPING_SPEED  = 80; // ms per word
+
+  // Map for late translation updates (by ID)
+  let sentenceSpans  = {};   // id -> { enSpan, tlSpan }
+
+  // ── Helpers ───────────────────────────────────────────────
+  function clean(text) {
+    return (text || '').replace(/\s+/g, ' ').trim();
+  }
+
+  // Extract only the new words from a cumulative stream
+  function getNewWords(current, previous) {
+    current = clean(current);
+    previous = clean(previous);
+    if (!previous) return current;
+    if (current.startsWith(previous)) {
+      return current.slice(previous.length).trim();
+    }
+    // If stream drifted significantly, return the whole thing to avoid loss
+    if (current.length < previous.length * 0.8) return current; 
+    return ""; 
+  }
+
+  function hideAwaiting() {
+    if (awaitLeft)  { awaitLeft.style.display  = 'none'; }
+    if (awaitRight) { awaitRight.style.display = 'none'; }
+  }
+
+  function updateWordCount() {
+    wordCountEl.textContent = enWordCount + ' words';
+  }
+
+  // ── Scroll tracking ───────────────────────────────────────
+  function nearBottom(el) {
+    return el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+  }
+
+  panelLeft.addEventListener('scroll', () => {
+    autoScrollLeft = nearBottom(panelLeft);
+    document.getElementById('scrollBtnLeft')
+      .classList.toggle('visible', !autoScrollLeft);
+  });
+
+  panelRight.addEventListener('scroll', () => {
+    autoScrollRight = nearBottom(panelRight);
+    document.getElementById('scrollBtnRight')
+      .classList.toggle('visible', !autoScrollRight);
+  });
+
+  function scrollPanel(panel, auto) {
+    if (!auto) return;
+    panel.scrollTo({ top: panel.scrollHeight, behavior: 'smooth' });
+  }
+
+  function jumpToBottom(side) {
+    if (side === 'left') {
+      panelLeft.scrollTop = panelLeft.scrollHeight;
+      autoScrollLeft = true;
+      document.getElementById('scrollBtnLeft').classList.remove('visible');
+    } else {
+      panelRight.scrollTop = panelRight.scrollHeight;
+      autoScrollRight = true;
+      document.getElementById('scrollBtnRight').classList.remove('visible');
+    }
+  }
+
+  // ── Streaming Engine ──────────────────────────────────────
+  function handleStream(data) {
+    hideAwaiting();
+    
+    const enText = clean(data.text);
+    const tlText = data.translated ? clean(data.translated) : "";
+
+    // 1. Process English (Word-By-Word Typing Queue)
+    if (enText) {
+      const words = enText.split(/\s+/);
+      if (words.length > lastEnWordCount) {
+        const newWords = words.slice(lastEnWordCount);
+        wordQueue.push(...newWords);
+        lastEnWordCount = words.length;
+        startTypingLoop();
+      }
+    }
+
+    // 2. Process Translation
+    if (tlText) {
+      if (!activeTlSpan) createNewActiveSpans();
+      activeTlSpan.textContent = tlText;
+      lastTlText = tlText;
+    }
+
+    scrollPanel(panelLeft,  autoScrollLeft);
+    scrollPanel(panelRight, autoScrollRight);
+  }
+
+  function startTypingLoop() {
+    if (typingTimer) return;
+    
+    typingTimer = setInterval(() => {
+      if (wordQueue.length === 0) {
+        clearInterval(typingTimer);
+        typingTimer = null;
+        return;
+      }
+
+      const word = wordQueue.shift();
+      if (!activeEnSpan) createNewActiveSpans();
+      
+      const textNode = document.createTextNode((activeEnSpan.textContent.length > 2 ? " " : "") + word);
+      activeEnSpan.insertBefore(textNode, activeEnSpan.querySelector('.cursor'));
+      
+      enWordCount++;
+      updateWordCount();
+      scrollPanel(panelLeft, autoScrollLeft);
+    }, TYPING_SPEED);
+  }
+
+  function createNewActiveSpans() {
+    // English
+    activeEnSpan = document.createElement('span');
+    activeEnSpan.className = 'sentence latest';
+    const cur = document.createElement('span');
+    cur.className = 'cursor';
+    activeEnSpan.appendChild(cur);
+    panelLeft.appendChild(activeEnSpan);
+
+    // Translation
+    activeTlSpan = document.createElement('span');
+    activeTlSpan.className = 'sentence latest';
+    panelRight.appendChild(activeTlSpan);
+
+    // Paragraph breaks
+    if (enWordCount > 0 && enWordCount % 40 < 5) {
+      panelLeft.appendChild(document.createElement('span')).className = 'para-break';
+      panelRight.appendChild(document.createElement('span')).className = 'para-break';
+    }
+  }
+
+  function finalizeCurrent(data) {
+    const id = data.id;
+    const finalEn = clean(data.text);
+    const finalTl = data.translated ? clean(data.translated) : "";
+
+    // Fast-forward any words remaining in queue for this sentence
+    while (wordQueue.length > 0) {
+      const word = wordQueue.shift();
+      if (!activeEnSpan) createNewActiveSpans();
+      const textNode = document.createTextNode((activeEnSpan.textContent.length > 2 ? " " : "") + word);
+      activeEnSpan.insertBefore(textNode, activeEnSpan.querySelector('.cursor'));
+      enWordCount++;
+    }
+    clearInterval(typingTimer);
+    typingTimer = null;
+
+    if (!activeEnSpan) createNewActiveSpans();
+
+    // Catch any final corrections (leftover words)
+    const finalWords = finalEn.split(/\s+/);
+    if (finalWords.length > lastEnWordCount) {
+      const leftover = finalWords.slice(lastEnWordCount).join(' ');
+      const textNode = document.createTextNode((activeEnSpan.textContent.length > 2 ? " " : "") + leftover);
+      activeEnSpan.insertBefore(textNode, activeEnSpan.querySelector('.cursor'));
+    }
+
+    if (finalTl) activeTlSpan.textContent = finalTl;
+
+    const cursor = activeEnSpan.querySelector('.cursor');
+    if (cursor) cursor.remove();
+    
+    document.querySelectorAll('.sentence.latest').forEach(el => {
+      if (el !== activeEnSpan && el !== activeTlSpan) el.classList.remove('latest');
+    });
+
+    sentenceSpans[id] = { enSpan: activeEnSpan, tlSpan: activeTlSpan };
+
+    activeEnSpan = null;
+    activeTlSpan = null;
+    lastEnWordCount = 0;
+    lastTlText = "";
+    updateWordCount();
+
+    scrollPanel(panelLeft,  autoScrollLeft);
+    scrollPanel(panelRight, autoScrollRight);
+  }
+
+  function updateTranslation(id, tlText) {
+    const entry = sentenceSpans[id];
+    if (entry) {
+      entry.tlSpan.textContent = clean(tlText);
+      scrollPanel(panelRight, autoScrollRight);
+    }
+  }
+
+  // ── Session restart marker ────────────────────────────────
+  function addSessionMark() {
+    const markL = document.createElement('span');
+    markL.className = 'session-mark';
+    markL.textContent = '— New Session —';
+    const markR = document.createElement('span');
+    markR.className = 'session-mark';
+    markR.textContent = '— புதிய அமர்வு —';
+
+    panelLeft.appendChild(markL);
+    panelRight.appendChild(markR);
+    
+    // Reset engine state
+    activeEnSpan = null;
+    activeTlSpan = null;
+    lastEnWordCount = 0;
+    lastTlText = "";
+  }
+
+  // ── Load history ──────────────────────────────────────────
+  function loadHistory(history) {
+    panelLeft.innerHTML  = '';
+    panelRight.innerHTML = '';
+    sentenceSpans = {};
+    enWordCount = 0;
+    activeEnSpan = null;
+    activeTlSpan = null;
+    lastEnWordCount = 0;
+    lastTlText = "";
+
+    if (!history || history.length === 0) {
+      createAwait(panelLeft,  'Awaiting speech…');
+      createAwait(panelRight, 'Translation will appear here');
+      return;
+    }
+
+    history.forEach(item => {
+      // Create static spans for history
+      const enSpan = document.createElement('span');
+      enSpan.className = 'sentence';
+      enSpan.textContent = clean(item.text);
+      panelLeft.appendChild(enSpan);
+
+      const tlSpan = document.createElement('span');
+      tlSpan.className = 'sentence';
+      tlSpan.textContent = item.translated ? clean(item.translated) : '…';
+      panelRight.appendChild(tlSpan);
+
+      sentenceSpans[item.id] = { enSpan, tlSpan };
+      enWordCount += enSpan.textContent.split(' ').length;
+    });
+
+    updateWordCount();
+    scrollPanel(panelLeft, true);
+    scrollPanel(panelRight, true);
+  }
+
+  function createAwait(panel, msg) {
+    const p = document.createElement('p');
+    p.className = 'await-hint';
+    p.textContent = msg;
+    panel.insertBefore(p, panel.firstChild);
+    return p;
+  }
+
+  // ── Reset ─────────────────────────────────────────────────
+  function resetView() {
+    panelLeft.innerHTML  = '';
+    panelRight.innerHTML = '';
+    sentenceSpans = {};
+    enWordCount = 0;
+    activeEnSpan = null;
+    activeTlSpan = null;
+    lastEnWordCount = 0;
+    lastTlText = "";
+    updateWordCount();
+    socket.emit('clear_history');
+  }
+
+  // ── Socket.IO ─────────────────────────────────────────────
   const socket = io({ query: { type: 'web' } });
 
-  let logCount = 0;
-
-  // ── Connection events ────────────────────────────────────
   socket.on('connect', () => {
-    setStatus(true);
-    document.getElementById('flutter-url').textContent =
-      `http://${location.hostname}:3000`;
+    setStatus('online', 'System Online');
   });
-  socket.on('disconnect', () => setStatus(false));
 
-  function setStatus(connected) {
-    const pill = document.getElementById('connection-status');
+  socket.on('disconnect', () => {
+    setStatus('offline', 'Offline');
+  });
+
+  // Live partial words
+  socket.on('live_subtitle', (data) => {
+    handleStream(data);
+  });
+
+  // Finalized English sentence (translation may arrive later)
+  socket.on('final_subtitle', (data) => {
+    finalizeCurrent(data);
+  });
+
+  // Translation arrives separately (non-blocking from server)
+  socket.on('translation_ready', (data) => {
+    if (!data.id || !data.translated) return;
+    updateTranslation(data.id, clean(data.translated));
+  });
+
+  // Full history on connect/reconnect
+  socket.on('history', (history) => {
+    loadHistory(history);
+  });
+
+  // Engine restarted
+  socket.on('session_restart', () => {
+    setStatus('warn', 'Reconnecting…');
+    addSessionMark();
+  });
+
+  socket.on('engine_status', (data) => {
+    if (data.status === 'ready' || data.status === 'streaming') {
+      setStatus('online', 'System Online');
+    } else if (data.status === 'error') {
+      setStatus('offline', 'Engine Error');
+    }
+  });
+
+  // Language change acknowledged
+  socket.on('config_ack', (data) => {
+    console.log('[CONFIG] Language confirmed:', data.target_lang);
+  });
+
+  // ── Status helper ─────────────────────────────────────────
+  function setStatus(cls, text) {
     const dot  = document.getElementById('status-dot');
-    const txt  = document.getElementById('status-text');
-    pill.className = 'status-pill ' + (connected ? 'connected' : 'disconnected');
-    dot.className  = 'dot' + (connected ? ' pulse' : '');
-    txt.textContent = connected ? 'Connected' : 'Disconnected';
+    const span = document.getElementById('status-text');
+    dot.className  = cls;
+    span.textContent = text;
   }
 
-  // ── Receive subtitle ────────────────────────────────────
-  socket.on('subtitle', (entry) => {
-    // Update live display
-    const el = document.getElementById('current-subtitle');
-    el.textContent = entry.text;
-    el.classList.remove('subtitle-flash');
-    void el.offsetWidth; // reflow
-    el.classList.add('subtitle-flash');
-
-    const meta = document.getElementById('subtitle-meta');
-    const conf = entry.confidence != null ? `  ·  confidence ${(entry.confidence * 100).toFixed(0)}%` : '';
-    meta.textContent = `#${entry.id}  ·  ${entry.source}${conf}  ·  ${new Date(entry.timestamp).toLocaleTimeString()}`;
-
-    // Add to log
-    addLogEntry(entry);
+  // ── Language dropdown ─────────────────────────────────────
+  langTrigger.addEventListener('click', (e) => {
+    e.stopPropagation();
+    langOptions.classList.toggle('show');
   });
 
-  // ── History ─────────────────────────────────────────────
-  socket.on('history', (entries) => {
-    entries.forEach(addLogEntry);
+  document.querySelectorAll('.option').forEach(opt => {
+    opt.addEventListener('click', () => {
+      const code = opt.dataset.value;
+      const name = opt.textContent.trim();
+      selectedLang.textContent = name;
+
+      document.querySelectorAll('.option').forEach(o => o.classList.remove('active'));
+      opt.classList.add('active');
+      langOptions.classList.remove('show');
+
+      socket.emit('config_update', { target_lang: code });
+    });
   });
 
-  function addLogEntry(entry) {
-    const emptyMsg = document.getElementById('empty-msg');
-    if (emptyMsg) emptyMsg.remove();
-
-    logCount++;
-    const ul = document.getElementById('subtitle-log');
-    const li = document.createElement('li');
-
-    const sourceClass = entry.source || 'whisper';
-    const conf = entry.confidence != null ? ` · ${(entry.confidence * 100).toFixed(0)}%` : '';
-
-    li.innerHTML = `
-      <div class="log-idx">#${entry.id || logCount}</div>
-      <div class="log-body">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-          <span class="log-source ${sourceClass}">${entry.source || 'whisper'}${conf}</span>
-        </div>
-        <div class="log-text">${escapeHtml(entry.text)}</div>
-        <div class="log-time">${new Date(entry.timestamp || Date.now()).toLocaleTimeString()}</div>
-      </div>`;
-
-    ul.insertBefore(li, ul.firstChild);
-
-    // Trim to 50
-    while (ul.children.length > 50) ul.removeChild(ul.lastChild);
-  }
-
-  // ── Stats ────────────────────────────────────────────────
-  socket.on('server_stats', (data) => {
-    document.getElementById('stat-total').textContent   = data.total_sent || 0;
-    document.getElementById('stat-flutter').textContent = data.connected?.flutter || 0;
-    document.getElementById('stat-python').textContent  = data.connected?.python  || 0;
-    document.getElementById('cl-python').textContent    = data.connected?.python  || 0;
-    document.getElementById('cl-flutter').textContent   = data.connected?.flutter || 0;
-    document.getElementById('cl-web').textContent       = data.connected?.web     || 0;
-
-    // Uptime
-    const s   = data.uptime_sec || 0;
-    const hrs = String(Math.floor(s / 3600)).padStart(2,'0');
-    const min = String(Math.floor((s % 3600) / 60)).padStart(2,'0');
-    const sec = String(s % 60).padStart(2,'0');
-    document.getElementById('uptime').textContent = hrs > 0 ? `${hrs}:${min}:${sec}` : `${min}:${sec}`;
+  document.addEventListener('click', () => {
+    langOptions.classList.remove('show');
   });
 
-  // ── Send test subtitle from browser ─────────────────────
-  document.getElementById('btn-send').addEventListener('click', () => {
-    const text = document.getElementById('test-text').value.trim();
-    if (!text) return;
-    socket.emit('subtitle', { text, source: 'web-test', confidence: null, timestamp: new Date().toISOString() });
-    document.getElementById('test-text').value = '';
-  });
+  // ── Reset button ──────────────────────────────────────────
+  btnReset.addEventListener('click', resetView);
 
-  document.getElementById('test-text').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') document.getElementById('btn-send').click();
-  });
-
-  // ── Clear log ────────────────────────────────────────────
-  document.getElementById('btn-clear').addEventListener('click', () => {
-    document.getElementById('subtitle-log').innerHTML = `
-      <li class="empty-state" id="empty-msg">
-        <div class="icon">🎙</div>
-        <div>Log cleared</div>
-      </li>`;
-    logCount = 0;
-  });
-
-  function escapeHtml(t) {
-    return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  }
+  // ── Init on load ──────────────────────────────────────────
+  // No-op (Await speech)
 </script>
 </body>
 </html>

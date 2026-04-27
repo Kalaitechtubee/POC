@@ -1,106 +1,57 @@
-# 🎙️ Live Auto Subtitle System — PRO Version
+# 🎤 LiveScript Pro (v2) — Live Auto Subtitle & Translation
 
-A high-performance, real-time subtitle pipeline combining **Vosk** for instantaneous "live typing" and **Faster-Whisper** for premium accuracy.
+A professional-grade, ultra-low latency transcription and translation engine designed for high-stakes presentations, broadcasts, and accessibility.
 
----
+## 🚀 Key Features (v2 Upgrades)
 
-## 🌟 Overview
+*   **⚡ Async Non-Blocking Pipeline**: English subtitles are broadcast **instantly**. Translations follow asynchronously, ensuring zero lag in the primary transcript.
+*   **🌍 Intelligent Neural Translation**: Real-time translation to Tamil and other regional languages with automatic retry logic.
+*   **🎬 Real Streaming Word Engine (v2.5)**: A true typewriter-style engine that appends words incrementally as they are spoken. Unlike standard systems that "jump" between sentences, LiveScript Pro tracks the word stream and extracts only new content for a 100% stable visual flow.
+*   **🛡️ Drift-Resistant Logic**: Advanced comparison logic ensures that if the acoustic engine corrects itself mid-sentence, the UI handles it gracefully without duplicating words or breaking the "word flow."
+*   **📖 Cinematic Dual-Panel Feed**: Independent scrollable panels for English and Translation, featuring a live blinking cursor, session markers, and smart auto-scroll.
+*   **🧠 Intelligent NLP Layer**: Automatic sentence formatting (capitalization, punctuation), grammar cleanup (e.g., "i" to "I"), and context-aware replacement of common acoustic mis-transcriptions.
+*   **🎯 Latest Sentence Highlight**: The UI dynamically highlights the active speech area with a distinct blue glow and a focused typing cursor.
 
-This project is a high-performance **Live Subtitle System**. It solves the "latency vs. accuracy" trade-off by using two AI models simultaneously:
-1.  **Vosk (Live Typing)**: Provides ultra-low latency text (sub-100ms) for an immediate "typing" effect.
-2.  **Faster-Whisper (Accuracy)**: Corrects the live text every few seconds with industry-leading accuracy (99+ languages).
+## 🏗️ System Architecture
 
-### 🏗️ Architecture & Flow
-1.  **Audio Input**: Captured via `sounddevice` in Python.
-2.  **Dual AI Engine**:
-    *   **Vosk** processes the raw byte stream for immediate partial results.
-    *   **Faster-Whisper** processes accumulated 3-4 second chunks for a high-quality "final" sentence.
-3.  **WebSocket Hub**: A **Node.js (Socket.io)** server relays both "live" and "final" subtitles to all clients.
-4.  **Flutter Frontend**: A premium UI that displays live typing (blue) and auto-corrects to the final version (green) with smooth animations.
+1.  **AI Engine (`transcriber.py`)**: 
+    *   Vosk-powered local transcription (16kHz).
+    *   Confidence-based filtering and junk pattern rejection.
+    *   Real-time JSON status reporting.
+2.  **Relay Server (`server.js`)**: 
+    *   Node.js Socket.io hub for multi-client synchronization.
+    *   Asynchronous translation worker with exponential backoff retries.
+    *   Automatic file-based history persistence.
+3.  **Pro Dashboard (`dashboard.html`)**: 
+    *   Premium UI with Noto Sans Tamil typography.
+    *   Independent scroll-tracking and "Jump to Bottom" intelligence.
+    *   Real-time word count and system health telemetry.
 
----
+## 🛠️ Quick Start
 
-## 📁 Project Structure
+### 1. Requirements
+*   Python 3.10+
+*   Node.js 18+
+*   Vosk Model (English) in `server/model/`
 
-```text
-project/
-├── python-ai/
-│   ├── dual_mode_transcriber.py  ← NEW: Combined Vosk + Faster-Whisper engine
-│   ├── whisper_live.py           ← Original Whisper implementation
-│   ├── vosk-model-small-en-us/   ← Vosk local model for speed
-│   ├── requirements.txt          ← Python packages: faster-whisper, vosk, etc.
-│   └── script.txt                ← Pre-defined script for matching (optional)
-│
-├── server/
-│   ├── server.js                 ← Node.js hub with live/final event support
-│   ├── dashboard.html            ← Web monitoring dashboard
-│   └── package.json              ← Node.js packages: socket.io, express
-│
-└── flutter_app/
-    ├── lib/main.dart             ← Flutter app with dual-subtitle state logic
-    └── pubspec.yaml              ← Flutter packages: socket_io_client
-```
-
----
-
-## 🚀 Getting Started
-
-### 1️⃣ Start the Hub (Node.js Server)
-```powershell
-cd project/server
+### 2. Launch the System
+```bash
+cd server
 npm install
 npm run dev
 ```
 
-### 2️⃣ Start the UI (Flutter App)
-```powershell
-cd project/flutter_app
-flutter pub get
-flutter run -d chrome
-```
+### 3. Access
+*   **Web Dashboard**: `http://localhost:3000`
+*   **History Data**: `http://localhost:3000/history.json`
 
-### 3️⃣ Start the PRO AI Engine (Python)
-This engine handles the dual-model processing.
-```powershell
-cd project/python-ai
-# Ensure dependencies are installed
-pip install -r requirements.txt
-# Run the dual-mode transcriber
-python dual_mode_transcriber.py --model base --chunk 4
-```
+## ⌨️ Console Observability
+The server terminal provides real-time feedback on the processing pipeline:
+*   `[AI STATUS]` — Reports engine state (loading, ready, streaming).
+*   `[LIVE]` — Real-time partial word stream (as you speak).
+*   `[ENG ✓]` — Completed English sentence (finalized).
+*   `[TRN ✓]` — Asynchronous translation successfully synced to UI.
+*   `[HISTORY]` — Database activity (loading/saving session state).
 
 ---
-
-## 🛠️ Tech Stack & Packages
-
-### **Python AI Layer**
-- `faster-whisper`: High-speed CTranslate2 implementation of OpenAI's Whisper.
-- `vosk`: Offline open-source speech recognition (Kaldi-based).
-- `sounddevice` & `numpy`: High-performance audio capture and processing.
-- `python-socketio[client]`: Real-time communication.
-
-### **Node.js Middleware**
-- `socket.io`: Bidirectional WebSocket communication.
-- `express`: Minimalist web framework for the dashboard.
-- `nodemon`: Development auto-restart.
-
-### **Flutter Frontend**
-- `socket_io_client`: Mobile/Web WebSocket client.
-- `ticker_provider`: For smooth subtitle flash animations.
-
----
-
-## 🧩 Logic Workflow
-
-1.  **Voice Detected**: Microphones starts capturing data.
-2.  **Live Path**: Vosk emits `live_subtitle` → Node.js → Flutter (Shows **blue** text instantly).
-3.  **Final Path**: Every 4 seconds, the buffer is sent to Faster-Whisper → `final_subtitle` → Node.js → Flutter (Replaces text with **green** high-accuracy version).
-4.  **History**: The final version is saved to the history sidebar for later review.
-
----
-
-## 🔧 Windows Troubleshooting
-
-1.  **EADDRINUSE (Port 3000)**: If the server fails to start, another process is using port 3000. Run `taskkill /F /IM node.exe` or use a different port.
-2.  **Unicode Errors**: If you see characters like `✅` crashing the terminal, the script includes a `sys.stdout.reconfigure` fix. Use a modern terminal like Windows Terminal or VS Code integrated terminal.
-3.  **CUDA/GPU**: By default, Faster-Whisper runs on CPU. If you have an NVIDIA GPU, change `device="cpu"` to `device="cuda"` in `dual_mode_transcriber.py` for 10x more speed.
+*Built for BerrybeansTech POC — LiveScript Pro Edition.*

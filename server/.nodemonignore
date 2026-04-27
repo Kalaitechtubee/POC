@@ -1,0 +1,5 @@
+data/
+history.json
+history.json.tmp
+*.log
+node_modules
